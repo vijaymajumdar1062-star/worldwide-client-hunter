@@ -1,52 +1,43 @@
-# Gmail Outreach setup
+# Maps discovery → business demo → Gmail first outreach
 
-## Current behavior: first contact only
+Start with [Hindi setup steps](../docs/START_HERE_HI.md). Install **Code.gs, Maps.gs, Demo.gs and appsscript.json** in one Google Sheet-bound Apps Script project. No Gmail password, OAuth refresh token, GitHub token or secret goes in this public repository. Google manages Gmail OAuth inside Apps Script. Maps API key and demo signing secret stay in private Script Properties.
 
-The owner handles ALL follow-ups and client replies manually. Automation creates and sends only the first email to a verified contact. That email includes a styled HTML layout concept personalized with the request title and India ₹999 / international $19 offer; other business content is explicitly placeholder text. This is an inline email demo, not a deployed/live website or portfolio URL. Plain-text clients receive the layout description. Existing queued follow-ups are blocked after upgrading this code. No automatic social/WhatsApp outreach is installed.
+## Implemented flow
+- Original GitHub RSS discovery files/workflow are unchanged. Optional RSS import is off in the private script by default (`RSS_IMPORT_ENABLED=false`). GitHub Actions tests all outreach modules. The private Google trigger runs Maps processing every 30 minutes (`tick_`).
+- Official Places Text Search (New) rotates 72 seeded city/category queries across India, UK, Canada, USA, Australia, UAE, New Zealand, Singapore, Ireland and South Africa. Every run requests at most one page of 10 listings. Default cap: four search requests/day UTC, reserved before the API call so failures consume the local request budget. Edit Queries or SEARCH_DAILY_CAP to change the range/volume; cap is 0..48. This is not unlimited, does not guarantee results, and is not a substitute for Cloud API quotas/billing controls. `websiteUri` fields affect billing SKU.
+- Private place-ID filtering prevents duplicate imports. Only operational businesses with a website-not-listed, HTTP 404/410, or missing viewport signal are retained as prospects. Unknown/blocked/redirected pages are inconclusive; a listed website is never called old purely by appearance or technology. These checks are limited signals, not a professional audit or proof a site does not exist.
+- The listed official HTTPS website plus `/contact` and `/contact-us` are checked for publicly published email. No guessing, unrelated data broker, login scraping, Maps UI scraping or automated contact-form/WhatsApp/social messaging is implemented. Requests do not forward credentials to the business site. Cross-domain redirects and literal/private/local hostnames are rejected for review.
+- `verified=YES` for automatic extraction means **published at the recorded official-page URL**; it does not prove mailbox deliverability, recipient consent, customer interest or legal eligibility. Missing email → `needs_contact_email` and no send. This especially affects businesses with no website: Maps does not return an email field. Owners may add a public recipient and HTTPS source evidence privately, correct market/category, then set verified YES.
+- Six distinct responsive design templates: salon, restaurant, clinic, garage, cleaning and shop. Uses exact discovered business name, configured city/category and the correct offer. Suggested services are explicitly illustrative; no invented photos, ratings, qualifications, contact numbers or testimonials.
+- Real demo URLs are served by an owner-deployed Apps Script web app. Signed per-business links expire 30 days after discovery. Demos are labelled independent proposals and noindex; they do not accept bookings/payments or expose lead email, Gmail data, private Sheet data or credentials. All service helpers end in `_` so Apps Script client RPC cannot call them. Public control functions require the mailbox owner. `doGet` is read-only presentation with signed lookup; there is no public send endpoint.
+- A configured `/exec` demo URL is required before a Maps prospect can get an outreach draft. A qualified contact receives one first email with demo link, India ₹999 / international $19 one-page offer, clear extra charges and opt-out. Default sending enabled for a new installation, so **pause sending during installation/testing**; Maps starts disabled until explicitly enabled. Existing pause settings are preserved. Use manual approval mode if desired; automatic mode authorizes only freshly generated templates and never adopts edited/legacy drafts.
+- Any reply is recorded and marked for owner review; keyword interest is only a suggestion, never a confirmed sale. STOP/unsubscribe/not-interested requests enter permanent private suppression. No automatic replies, negotiations or follow-ups. Legacy followup-approved rows are prevented from sending.
+- Before sending, draft hash, recipient/CC/BCC, source verification, suppression, reply state and per-email Gmail-alias-aware ledger reservation are checked. Max 20 first emails/day UTC. Reservations are durable BEFORE Gmail send; uncertain send outcomes never automatically retry. Source-verification is not a substitute for evaluating the recipient's published contact preferences and applicable outreach requirements.
 
-## What is implemented
-The existing hunter and its workflow are unchanged. GitHub Actions continues public lead discovery every 30 minutes. A separate test workflow checks the outreach code. A Google Apps Script time trigger pulls the existing public `data/state.json` every 30 minutes into a **private** Sheet. This pull integration needs no webhook, GitHub token, Gmail password, client secret, refresh token or GitHub secret. Gmail OAuth consent and token renewal are managed inside Google's Apps Script runtime.
-
-Code is committed and mock-tested. Live Gmail OAuth, trigger installation, inbox access, draft creation and delivery must be verified after the mailbox owner installs and authorizes the script. Nothing is currently connected to your Gmail by merely committing this code.
-
-## Install (mailbox owner, once)
-1. At https://sheets.google.com create a blank **private** spreadsheet, named `Client Hunter Outreach`. Do not share it or its script: editors can access private leads and modify automation code.
-2. Extensions → Apps Script. Replace Code.gs with this directory's `Code.gs`.
-3. Project Settings → enable “Show appsscript.json manifest file in editor”. Replace the manifest with this directory's `appsscript.json`. Save.
-4. Select `setup`, then Run. Choose the Gmail account that will send proposals and approve the requested Google permissions. `setup` creates Leads, Suppression and Ledger tabs, records the mailbox owner and spreadsheet ID in Script Properties, and installs one 30-minute `tick` trigger. Re-running setup replaces only this script's tick triggers. Reload the spreadsheet for the Client Hunter menu.
-5. Run `tick` once. If no candidates exist upstream, Leads contains headers only. That is not an installation failure. Apps Script → Executions shows any import/permission failure. The current upstream run had zero candidates; discovery does not guarantee buyers.
-6. For a real buyer candidate, verify the original request, date, requested service and permitted contact method. In the PRIVATE Leads row fill `email`, `email_source` (HTTPS evidence showing this recipient is the correct contact), `contact_name` (optional), correct `market` (`India` or `International`) and set `verified` to `YES`. Imported leads are never automatically declared verified; email syntax alone does not verify ownership or deliverability. No email addresses are guessed or scraped from unrelated pages.
-7. Client Hunter → Sync and prepare drafts. A verified row receives a personalized Gmail draft. Offer: India ₹999; international $19, starting price for one page. Domain, paid hosting, ecommerce/custom integrations are separate.
-8. New installations use automatic outreach: fresh verified template drafts are sent without individual approval. You reply manually when clients respond. To review every email first, choose **Use manual approval mode**, inspect the Gmail draft, then **Approve selected draft**. Changes after authorization invalidate its hash; authorization expires after 24 hours. Existing edited/legacy drafts are never automatically adopted.
-9. New installations default to `AUTO_SEND=true` and `SEND_ENABLED=true`. If upgrading an earlier installation, choose **Enable automatic outreach** once; existing pause settings are preserved by setup. Each tick sends fresh verified emails automatically, up to 20/day (UTC day). Set a lower `DAILY_CAP` in Script Properties if desired. **Pause sending** stops subsequent automated sends; already accepted messages cannot be recalled.
-
-## Google permissions you approve
-| Scope | Used for |
+## Google permissions
+| OAuth scope | Purpose |
 | --- | --- |
-| `https://mail.google.com/` | GmailApp draft creation, reading replies, reading approved drafts and sending. This is Google's broad mailbox scope and technically permits deletion; this code does not delete mail. |
-| `https://www.googleapis.com/auth/spreadsheets` | Read/write the private Leads, Suppression and Ledger tabs. |
-| `https://www.googleapis.com/auth/script.external_request` | Fetch public candidate JSON from this GitHub repository. |
-| `https://www.googleapis.com/auth/script.scriptapp` | Install/manage this script's 30-minute trigger. |
-| `https://www.googleapis.com/auth/userinfo.email` | Identify the mailbox owner for owner-only approval controls. |
+| `https://mail.google.com/` | GmailApp read/reply scan, drafts, send. Broad mailbox scope technically allows deletion; code never deletes mail. |
+| `https://www.googleapis.com/auth/spreadsheets` | Private Leads, Suppression, Ledger, Queries tabs. |
+| `https://www.googleapis.com/auth/script.external_request` | Official Maps API and public business website fetches; optional GitHub state import. |
+| `https://www.googleapis.com/auth/script.scriptapp` | Manage this project's timer trigger. |
+| `https://www.googleapis.com/auth/userinfo.email` | Owner identity checks. |
 
-Use only your own reviewed Apps Script project. Do not enter Gmail passwords/app passwords in code, GitHub, Sheets or chat. No Cloud OAuth client setup is needed for this personal Apps Script implementation. Workspace policies may require an administrator or block a permission; do not bypass an organization restriction. If Google refuses authorization, the integration stays inactive.
+Owner must approve in their own account. No Cloud OAuth client secret is needed for this personal Apps Script design. Workspace policies may block public web apps or Gmail permissions; do not bypass them. Public deployment must contain the reviewed code only; never add public Gmail/admin handlers. Keep Sheet/script owner-private, since editors can alter code and view Script Properties. Signed demo links are shareable read-only proposals, not authentication for business owners.
 
-## Automatic behavior after installation
-- Import new candidates without overwriting existing verification, approvals or private fields; duplicate source IDs are ignored.
-- Create drafts only for manually verified contacts with an explicit source and confirmed market.
-- Persist email-stage reservations before sending. A duplicate email cannot receive another initial send or more than one follow-up through the automation.
-- Check the recipient's inbound messages, including separate threads, before sending; retain opt-outs indefinitely in Suppression. STOP, unsubscribe, remove-me and not-interested responses suppress future contact. You can also choose Suppress selected email manually.
-- Every inbound reply after the initial send stops follow-ups, including ambiguous/automated replies. Original-thread delivery failures also halt follow-ups.
-- Mark likely interest as `interested_candidate`; this is a keyword suggestion requiring your review, never a confirmed sale. No automatic negotiation, reply or payment promise.
-- Never create or send follow-ups, even if no reply arrives. Follow-ups and replies are handled manually by the owner.
-- Rotate across private rows (up to 50 eligible email rows / about 4 minutes per invocation). Large queues take multiple ticks. Trigger timing is approximate and Google quotas still apply. Scans with 100 matching threads fail closed for manual review.
+## Operation, upgrade and recovery
+- Run setup once (and after updating modules) to add new header columns while preserving legacy lead rows, then install one tick_ trigger. The public `tick` menu wrapper is owner-only; only the private scheduled `tick_` bypasses an interactive owner check, and still requires the effective mailbox owner.
+- Every tick processes a rotating queue for up to 50 email rows/about four minutes. Batches take multiple ticks; Apps Script quotas and trigger delays apply. Contact scans are retried at most weekly for an existing website row. Reply searches at 100 threads fail closed for manual review.
+- Errors: Script Properties MAPS_ERROR, MAPS_LAST_RUN, SEARCH_COUNT; private Leads error column; Apps Script Executions. No inbox bodies or credentials in Actions logs/artifacts. Never export the private Sheet into this public repository. Use Places data only within applicable Google Maps storage/use permissions; do not turn these private rows into a redistributed Maps listings archive. Consult the current Places policy before retaining/reusing API-derived content beyond your allowed use. Place IDs have an explicit storage exception.
+- `sending_uncertain`: manually check Gmail Sent and Ledger. Never delete reservations/reset states just to force retry, since Gmail may have accepted the original email. Manually sending managed drafts from Gmail bypasses this ledger; use the automation control instead.
+- Demo unavailable: test `/exec?sample=salon` in incognito; verify Anyone deployment, DEMO_BASE_URL, full module installation, unexpired signed URL and current deployed version. Updating code requires redeploying a new version. Public demos cannot be live-verified until your account authorizes and deploys them.
+- No-site contacts: private manually sourced contacts can be supplied with business-matching evidence, but this implementation cannot guarantee any email for a business without a website. Discovery, contact availability, delivery, replies and paid customers are separate outcomes.
+- Local/CI: `node --test tests/*.test.cjs`. Tests mock Gmail, Maps, Sheets and web deployment; they do not perform paid requests or send emails. Real API authentication, OAuth, public link accessibility and delivery require an owner-controlled end-to-end installation test after setup.
+- Disconnect: Pause sending, disable MAPS_ENABLED, delete tick_ trigger, revoke access at https://myaccount.google.com/permissions and disable/revoke Maps key. Preserve suppression history if later resuming.
 
-The script tracks replies, not opens. It does not use tracking pixels. Reply content stays in Gmail; only classification/timestamp is saved privately. Never put private emails, OAuth material, inbox exports, Sheet IDs or Ledger data in this public repository or public Actions artifacts.
-
-## Recovery and testing
-- `sending_uncertain`: Gmail may have accepted a send before a timeout/crash. The Ledger reservation deliberately prevents automatic resend. Check Gmail Sent and the Ledger manually. Do not delete reservations or reset rows casually; that can create duplicate messages.
-- A deleted/changed draft or missing scope produces a private row error and no automatic resend. Review the row and recreate/reapprove the draft as appropriate. For reply-classification errors inspect the Gmail conversation yourself.
-- The Leads sheet is the control plane; editing internal IDs/status/reservations bypasses invariants. Keep owner-only access and use the menu for approvals/suppression. Manually sending Gmail drafts outside this automation is not tracked as an automation send; do not do that with managed drafts.
-- Test locally: `node --test tests/outreach.test.cjs`. GitHub Actions runs the same mock tests. Tests do not contact Gmail or send messages.
-- After authorization, perform one end-to-end test using a real email address you own: add its source/verification, run tick, enable manual mode before adding the test row if you want to inspect first; otherwise run tick in automatic mode and confirm one Sent message and a Ledger `sent` entry. Reply STOP from the recipient; run tick and confirm Suppression and `opted_out`. Repeat with an interested reply on a fresh controlled recipient if desired. Use only owner-controlled recipients for these installation tests.
-- To disconnect: Pause sending, delete the `tick` trigger in Apps Script, and revoke the script's access at https://myaccount.google.com/permissions. Keep the private suppression list if you resume later.
+Official references:
+- https://developers.google.com/maps/documentation/places/web-service/text-search
+- https://developers.google.com/maps/documentation/places/web-service/usage-and-billing
+- https://developers.google.com/maps/documentation/places/web-service/policies
+- https://developers.google.com/apps-script/guides/web
+- https://developers.google.com/apps-script/reference/gmail/gmail-app
