@@ -22,3 +22,6 @@ Personalized proposal drafts are generated, **never posted or sent automatically
 
 ## Running
 Open Actions → Worldwide Website Client Hunter → Run workflow. No secrets required. Workflow requests contents:write to persist deduplication state. Outputs are public because this repository is public; avoid adding private customer information. Run locally with Python 3.12: `python scripts/hunter.py`.
+
+## Gmail outreach (optional, private)
+The additive Gmail integration is in [apps-script/SETUP.md](apps-script/SETUP.md). It uses Google-managed OAuth, a private Sheet, owner-approved Gmail drafts, reply/interest classification, permanent opt-out suppression, per-email duplicate prevention and one separately approved follow-up. Sending is paused by default. The Apps Script pulls this repository's existing discovery output; no Gmail credentials or private email data go into GitHub. Install/authorize in your Google account before any live Gmail functionality is active. Existing discovery remains unchanged.
