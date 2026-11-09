@@ -58,8 +58,20 @@ function compose(r,followup){
   const greeting=r.contact_name?'Hi '+String(r.contact_name).replace(/[\r\n]/g,' ')+',':'Hi,';
   return greeting+'\n\n'+(followup?'One follow-up on my earlier website proposal.':'I saw your website request: '+r.title+'.\nSource: '+r.url)+
     '\n\nI can build a mobile-friendly one-page business website starting at '+price(r)+', with services, contact details and a contact button. Domain, paid hosting, ecommerce and custom integrations are quoted separately.'+
-    '\n\n'+(followup?'If this is still relevant, would you like to discuss the scope? This is my only follow-up.':'Could you share your required pages/features so I can confirm the scope and timeline?')+
+    '\n\n'+(followup?'If this is still relevant, would you like to discuss the scope? This is my only follow-up.':'Here is a simple website layout concept for your request: Hero introduction | Services | About | Contact. The styled concept is shown in the HTML version of this email. This is a design preview, not a live website. Could you share your business name and required pages/features?')+
     '\n\nIf you prefer no further contact, reply STOP or unsubscribe and I will stop.\n\n'+(props().getProperty('SENDER_NAME')||'Vijay');
+}
+function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function demoEmail(r){
+  const title=escapeHtml(String(r.title||'Your website request').slice(0,180));
+  return '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#17243a">'+
+    '<p>'+escapeHtml(compose(r,false)).replace(/\n/g,'<br>')+'</p>'+
+    '<p style="color:#52617a;font-size:12px">PERSONALIZED LAYOUT CONCEPT · NOT A LIVE WEBSITE</p>'+
+    '<table role="presentation" width="100%" cellpadding="24" cellspacing="0" style="border:1px solid #ddd;border-radius:12px">'+
+    '<tr><td style="background:#152744;color:white"><p style="font-size:12px">WEBSITE DESIGN PREVIEW</p><h2>'+title+'</h2>'+
+    '<p>A clear introduction to your business, with your own photos and content.</p><span style="background:#89e0c3;color:#152744;padding:10px">Contact your business</span></td></tr>'+
+    '<tr><td><h3>Your services</h3><p>Space for the services you provide and the customers you help.</p><hr><h3>About your business</h3><p>Your story and business details go here.</p><hr><h3>Get in touch</h3><p>Your approved contact details and contact button go here.</p></td></tr></table>'+
+    '<p>Starting at <strong>'+escapeHtml(price(r))+'</strong> for one page. This concept uses placeholders; no business facts or working contact buttons are claimed.</p></div>';
 }
 function digest(d){const m=d.getMessage();return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,JSON.stringify([m.getTo(),m.getCc(),m.getBcc(),m.getSubject(),m.getPlainBody(),m.getBody(),m.getAttachments().map(a=>Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,a.getBytes())))])));}
 function approveSelected(){owner();locked(()=>{
@@ -107,11 +119,12 @@ function scanReplies(r){
   else if(replied){r.reply_status=kind;r.last_reply_at=last;r.status=kind;r.approval_hash='';}
 }
 function prepare(r,followup){
+  if(followup)throw Error('Follow-ups are handled manually by the owner');
   const email=normalizeEmail(r.email), stage=followup?'followup':'initial';
   if(reserved(email,stage))return;
   const others=rows().filter(x=>x.row!==r.row&&emailKey(x.email)===emailKey(email));
   if(!followup&&others.some(x=>x.draft_id||x.sent_at)){r.status='duplicate_email';return;}
-  const d=GmailApp.createDraft(email,(followup?'Following up: ':'Website proposal: ')+String(r.title).replace(/[\r\n]/g,' ').slice(0,150),compose(r,followup));
+  const d=GmailApp.createDraft(email,(followup?'Following up: ':'Website proposal: ')+String(r.title).replace(/[\r\n]/g,' ').slice(0,150),compose(r,false),{htmlBody:demoEmail(r)});
   r.draft_id=d.getId();r.status=followup?'followup_ready':'draft_ready';r.approval_hash='';r.approved_at='';
   // Automatic authorization applies only to a freshly generated template, never an existing edited draft.
   if(props().getProperty('AUTO_SEND')==='true'){
@@ -121,6 +134,7 @@ function prepare(r,followup){
 function todayCount(){const day=new Date().toISOString().slice(0,10);return ledger().filter(x=>String(x[5]).startsWith(day)&&x[3]==='reserved').length;}
 function sendApproved(r){
   const followup=r.status==='followup_approved',stage=followup?'followup':'initial';
+  if(followup){r.status='manual_followup';r.approval_hash='';return;}
   if(!['approved','followup_approved'].includes(r.status)||props().getProperty('SEND_ENABLED')!=='true')return;
   if(!verified(r)||blocked(r.email)||reserved(r.email,stage))return;
   if(followup&&(!r.sent_at||r.followup_sent_at||r.last_reply_at||Date.now()-new Date(r.sent_at).getTime()<3*86400000))return;
@@ -149,7 +163,7 @@ function tick(){return locked(()=>{
       scanReplies(r);
       if(verified(r)&&!blocked(r.email)&&!r.last_reply_at){
         if(['needs_verification',''].includes(r.status)&&!r.sent_at)prepare(r,false);
-        if(r.status==='sent'&&!r.followup_sent_at&&Date.now()-new Date(r.sent_at).getTime()>=3*86400000)prepare(r,true);
+        // Follow-ups belong to the owner; never queue or send them automatically.
         sendApproved(r);
       }
       r.error='';

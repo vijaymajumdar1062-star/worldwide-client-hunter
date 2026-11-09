@@ -1,5 +1,9 @@
 # Gmail Outreach setup
 
+## Current behavior: first contact only
+
+The owner handles ALL follow-ups and client replies manually. Automation creates and sends only the first email to a verified contact. That email includes a styled HTML layout concept personalized with the request title and India ₹999 / international $19 offer; other business content is explicitly placeholder text. This is an inline email demo, not a deployed/live website or portfolio URL. Plain-text clients receive the layout description. Existing queued follow-ups are blocked after upgrading this code. No automatic social/WhatsApp outreach is installed.
+
 ## What is implemented
 The existing hunter and its workflow are unchanged. GitHub Actions continues public lead discovery every 30 minutes. A separate test workflow checks the outreach code. A Google Apps Script time trigger pulls the existing public `data/state.json` every 30 minutes into a **private** Sheet. This pull integration needs no webhook, GitHub token, Gmail password, client secret, refresh token or GitHub secret. Gmail OAuth consent and token renewal are managed inside Google's Apps Script runtime.
 
@@ -34,7 +38,7 @@ Use only your own reviewed Apps Script project. Do not enter Gmail passwords/app
 - Check the recipient's inbound messages, including separate threads, before sending; retain opt-outs indefinitely in Suppression. STOP, unsubscribe, remove-me and not-interested responses suppress future contact. You can also choose Suppress selected email manually.
 - Every inbound reply after the initial send stops follow-ups, including ambiguous/automated replies. Original-thread delivery failures also halt follow-ups.
 - Mark likely interest as `interested_candidate`; this is a keyword suggestion requiring your review, never a confirmed sale. No automatic negotiation, reply or payment promise.
-- At least 3 days after an initial send, create ONE follow-up draft if there is no reply or opt-out. Automatic mode sends it without a separate approval. Manual mode requires separate approval. No second follow-up.
+- Never create or send follow-ups, even if no reply arrives. Follow-ups and replies are handled manually by the owner.
 - Rotate across private rows (up to 50 eligible email rows / about 4 minutes per invocation). Large queues take multiple ticks. Trigger timing is approximate and Google quotas still apply. Scans with 100 matching threads fail closed for manual review.
 
 The script tracks replies, not opens. It does not use tracking pixels. Reply content stays in Gmail; only classification/timestamp is saved privately. Never put private emails, OAuth material, inbox exports, Sheet IDs or Ledger data in this public repository or public Actions artifacts.
