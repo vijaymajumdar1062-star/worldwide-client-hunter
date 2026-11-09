@@ -1,14 +1,10 @@
 {
-  "run_at": "2026-11-09T05:32:14.934414+00:00",
-  "feeds_ok": 4,
+  "run_at": "2026-11-09T06:33:59.384318+00:00",
+  "feeds_ok": 5,
   "feeds_total": 8,
-  "new_leads": 0,
-  "total_leads": 0,
+  "new_leads": 5,
+  "total_leads": 5,
   "errors": [
-    {
-      "source": "Reddit r/smallbusiness",
-      "error": "HTTP Error 429: Too Many Requests"
-    },
     {
       "source": "Reddit r/Entrepreneur",
       "error": "HTTP Error 429: Too Many Requests"
