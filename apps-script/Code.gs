@@ -19,7 +19,8 @@ function setup() {
     if(!s.getLastRow()) {s.appendRow(headers);s.setFrozenRows(1);}
     else if(JSON.stringify(s.getRange(1,1,1,headers.length).getValues()[0])!==JSON.stringify(headers)) throw Error('Unexpected sheet headers: '+name);
   });
-  if(!p.getProperty('SEND_ENABLED'))p.setProperty('SEND_ENABLED','false');
+  if(!p.getProperty('SEND_ENABLED'))p.setProperty('SEND_ENABLED','true');
+  if(!p.getProperty('AUTO_SEND'))p.setProperty('AUTO_SEND','true');
   if(!p.getProperty('DAILY_CAP'))p.setProperty('DAILY_CAP','20');
   ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='tick').forEach(t=>ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('tick').timeBased().everyMinutes(30).create();
@@ -30,9 +31,13 @@ function onOpen() {
     .addItem('Sync and prepare drafts','tick')
     .addItem('Approve selected draft','approveSelected')
     .addItem('Suppress selected email','suppressSelected')
+    .addItem('Enable automatic outreach','enableAutomatic')
+    .addItem('Use manual approval mode','manualMode')
     .addItem('Enable approved sending','enableSending')
     .addItem('Pause sending','pauseSending').addToUi();
 }
+function enableAutomatic(){owner();props().setProperties({AUTO_SEND:'true',SEND_ENABLED:'true'});}
+function manualMode(){owner();props().setProperty('AUTO_SEND','false');}
 function enableSending(){owner();props().setProperty('SEND_ENABLED','true');}
 function pauseSending(){owner();props().setProperty('SEND_ENABLED','false');}
 function rows(){const s=book().getSheetByName('Leads');return s.getLastRow()<2?[]:s.getRange(2,1,s.getLastRow()-1,HEADERS.length).getValues().map((v,i)=>Object.assign({row:i+2},Object.fromEntries(HEADERS.map((k,j)=>[k,v[j]]))));}
@@ -108,6 +113,10 @@ function prepare(r,followup){
   if(!followup&&others.some(x=>x.draft_id||x.sent_at)){r.status='duplicate_email';return;}
   const d=GmailApp.createDraft(email,(followup?'Following up: ':'Website proposal: ')+String(r.title).replace(/[\r\n]/g,' ').slice(0,150),compose(r,followup));
   r.draft_id=d.getId();r.status=followup?'followup_ready':'draft_ready';r.approval_hash='';r.approved_at='';
+  // Automatic authorization applies only to a freshly generated template, never an existing edited draft.
+  if(props().getProperty('AUTO_SEND')==='true'){
+    r.approval_hash=digest(d);r.approved_at=new Date().toISOString();r.status=followup?'followup_approved':'approved';
+  }
 }
 function todayCount(){const day=new Date().toISOString().slice(0,10);return ledger().filter(x=>String(x[5]).startsWith(day)&&x[3]==='reserved').length;}
 function sendApproved(r){
