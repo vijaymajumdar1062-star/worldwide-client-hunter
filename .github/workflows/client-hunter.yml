@@ -1,0 +1,44 @@
+name: Worldwide Website Client Hunter
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/hunter.py'
+      - '.github/workflows/client-hunter.yml'
+permissions:
+  contents: write
+concurrency:
+  group: client-hunter
+  cancel-in-progress: false
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Discover leads and prepare proposals
+        run: python scripts/hunter.py
+      - name: Save deduplication state and reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m "Update client leads and proposal drafts [skip ci]"
+            git push origin HEAD:main
+          fi
+      - name: Upload lead reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-hunter-results
+          path: data/
+          if-no-files-found: warn
+          retention-days: 7
