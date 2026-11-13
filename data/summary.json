@@ -1,6 +1,6 @@
 {
-  "run_at": "2026-11-13T16:50:20.495517+00:00",
-  "feeds_ok": 1,
+  "run_at": "2026-11-13T17:47:45.515598+00:00",
+  "feeds_ok": 3,
   "feeds_total": 8,
   "new_leads": 0,
   "total_leads": 5,
@@ -24,14 +24,6 @@
     {
       "source": "Reddit r/slavelabour",
       "error": "HTTP Error 429: Too Many Requests"
-    },
-    {
-      "source": "Bing News",
-      "error": "not well-formed (invalid token): line 1, column 41"
-    },
-    {
-      "source": "Bing News",
-      "error": "not well-formed (invalid token): line 1, column 41"
     }
   ]
 }
