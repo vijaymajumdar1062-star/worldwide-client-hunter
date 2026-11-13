@@ -25,7 +25,6 @@ function setup() {
   });
   if(!p.getProperty('SEND_ENABLED'))p.setProperty('SEND_ENABLED','true');
   if(!p.getProperty('AUTO_SEND'))p.setProperty('AUTO_SEND','true');
-  if(!p.getProperty('DAILY_CAP'))p.setProperty('DAILY_CAP','20');
   initializeDiscovery_();
   ScriptApp.getProjectTriggers().filter(t=>['tick','tick_'].includes(t.getHandlerFunction())).forEach(t=>ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('tick_').timeBased().everyMinutes(30).create();
@@ -140,20 +139,30 @@ function prepare_(r,followup){
     r.approval_hash=digest_(d);r.approved_at=new Date().toISOString();r.status=followup?'followup_approved':'approved';
   }
 }
-function todayCount_(){const day=new Date().toISOString().slice(0,10);return ledger_().filter(x=>String(x[5]).startsWith(day)&&x[3]==='reserved').length;}
+const EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000;
+const EMAIL_RECIPIENTS_PER_WINDOW = 100;
+function recentSendReservations_(now){
+  return ledger_().filter(row=>row[3]==='reserved' && Date.parse(row[5])>now-EMAIL_WINDOW_MS).length;
+}
 function sendApproved_(r){
   const followup=r.status==='followup_approved',stage=followup?'followup':'initial';
   if(followup){r.status='manual_followup';r.approval_hash='';return;}
   if(!['approved','followup_approved'].includes(r.status)||props_().getProperty('SEND_ENABLED')!=='true')return;
   if(!verified_(r)||blocked_(r.email)||reserved_(r.email,stage))return;
   if(followup&&(!r.sent_at||r.followup_sent_at||r.last_reply_at||Date.now()-new Date(r.sent_at).getTime()<3*86400000))return;
-  if(!Number.isFinite(new Date(r.approved_at).getTime())||Date.now()-new Date(r.approved_at).getTime()>24*3600000){r.status=followup?'followup_ready':'draft_ready';r.approval_hash='';return;}
-  const cap=Math.max(0,Math.min(20,Number(props_().getProperty('DAILY_CAP')||20)));
-  if(!Number.isFinite(cap)||todayCount_()>=cap)return;
+  const now=Date.now(), approvedAt=Date.parse(r.approved_at);
+  const expired=Number.isFinite(approvedAt)&&now-approvedAt>EMAIL_WINDOW_MS;
+  if(!Number.isFinite(approvedAt)||(expired&&props_().getProperty('AUTO_SEND')!=='true')){
+    r.status='draft_ready';r.approval_hash='';return;
+  }
+  if(recentSendReservations_(now)>=EMAIL_RECIPIENTS_PER_WINDOW)return;
   const d=GmailApp.getDraft(r.draft_id),m=d.getMessage();
   if(!r.approval_hash||digest_(d)!==r.approval_hash||normalizeEmail_(m.getTo())!==normalizeEmail_(r.email)||m.getCc()||m.getBcc()){
     r.status=followup?'followup_ready':'draft_ready';r.approval_hash='';return;
   }
+  // Automatic mode can resume a queued draft after its original approval expires.
+  // The digest and recipient above must still match the original approval.
+  if(expired)r.approved_at=new Date(now).toISOString();
   // Persist intent BEFORE Gmail send. Any uncertain outcome requires manual reconciliation.
   journal_(r,stage,'reserved');r.status='sending_uncertain';save_(r);
   const sent=d.send();journal_(r,stage,'sent',sent.getId());
