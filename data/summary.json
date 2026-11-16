@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-11-16T21:21:48.040676+00:00",
+  "run_at": "2026-11-16T22:20:19.087129+00:00",
   "feeds_ok": 3,
   "feeds_total": 8,
   "new_leads": 0,
@@ -7,7 +7,7 @@
   "errors": [
     {
       "source": "Reddit r/forhire",
-      "error": "HTTP Error 403: Forbidden"
+      "error": "HTTP Error 429: Too Many Requests"
     },
     {
       "source": "Reddit r/smallbusiness",
