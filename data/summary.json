@@ -1,6 +1,6 @@
 {
-  "run_at": "2026-11-19T05:58:55.815028+00:00",
-  "feeds_ok": 2,
+  "run_at": "2026-11-19T07:09:00.017189+00:00",
+  "feeds_ok": 3,
   "feeds_total": 8,
   "new_leads": 0,
   "total_leads": 5,
@@ -23,11 +23,7 @@
     },
     {
       "source": "Reddit r/slavelabour",
-      "error": "HTTP Error 404: Not Found"
-    },
-    {
-      "source": "Bing News",
-      "error": "not well-formed (invalid token): line 1, column 41"
+      "error": "HTTP Error 429: Too Many Requests"
     }
   ]
 }
