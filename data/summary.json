@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-11-20T18:26:58.270698+00:00",
+  "run_at": "2026-11-20T19:33:54.057747+00:00",
   "feeds_ok": 3,
   "feeds_total": 8,
   "new_leads": 0,
@@ -15,7 +15,7 @@
     },
     {
       "source": "Reddit r/Entrepreneur",
-      "error": "HTTP Error 404: Not Found"
+      "error": "HTTP Error 429: Too Many Requests"
     },
     {
       "source": "Reddit r/web_design",
